@@ -1,7 +1,14 @@
 {
-  "root": true,
-  "extends": "airbnb-base",
-  "parserOptions": {
-    "sourceType": "script"
-  }
+    "root": true,
+    "extends": "airbnb-base",
+    "parserOptions": {
+        "sourceType": "script"
+    },
+    "rules": {
+        "quotes": ["error", "single"],
+        "indent": ["error", 4],
+        "semi": ["error", "never"],
+        "consistent-return": ["off"],
+        "no-underscore-dangle": ["error", { "allow": ["_body"] }]
+    }
 }
