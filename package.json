@@ -1,14 +1,14 @@
 {
   "name": "express-formidable-v2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A Fork of express-formidable middleware.",
   "author": "Abderrahman-byte",
   "main": "./lib/middleware.js",
   "engines": {
-    "node": ">= 12"
+    "node": ">= 13"
   },
   "scripts": {
-    "test": "eslint . && jest test/middleware.test.js --forceExit --detectOpenHandles"
+    "test": "eslint --fix . && jest test/middleware.test.js --forceExit"
   },
   "repository": {
     "type": "git",
