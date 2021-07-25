@@ -1,179 +1,71 @@
-'use strict';
+'use strict'
 
-const assert = require('assert');
-const express = require('express');
-const formidable = require('../lib/middleware');
-const fs = require('fs');
-const path = require('path');
-const send = require('./helpers/send');
+const assert = require('assert')
+const fs = require('fs')
+const path = require('path')
+const app = require('./helpers/server')
+const send = require('./helpers/send')
 
-const app = express();
-
-let callback = null;
-
-app.post('/', formidable(), req => callback(req));
-
-beforeAll(done => app.listen(1234, done));
-
-test('parses application/x-www-form-urlencoded', (done) => {
-  send('application/x-www-form-urlencoded', {
-    hello: 'world',
-    foo: 'bar',
-    number: 20161006,
-  });
-
-  callback = (req) => {
-    assert.equal(req.fields.hello, 'world');
-    assert.equal(req.fields.foo, 'bar');
-    assert.equal(req.fields.number, '20161006');
-    done();
-  };
-});
-
-test('parses application/json', (done) => {
-  send('application/json', {
-    hello: 'world',
-    foo: 'bar',
-    number: 20161006,
-  });
-
-  callback = (req) => {
-    assert.equal(req.fields.hello, 'world');
-    assert.equal(req.fields.foo, 'bar');
-    assert.equal(req.fields.number, '20161006');
-    done();
-  };
-});
-
-test('parses multipart/form-data without a file', (done) => {
-  send('multipart/form-data', {
-    hello: 'world',
-    foo: 'bar',
-    number: 20161006,
-  });
-
-  callback = (req) => {
-    assert.equal(req.fields.hello, 'world');
-    assert.equal(req.fields.foo, 'bar');
-    assert.equal(req.fields.number, '20161006');
-    done();
-  };
-});
-
-function fileTest(file, content) {
-  assert.equal(fs.readFileSync(file.path).toString(), content);
+const checkTwoFiles = (path1, path2) => {
+    assert(fs.readFileSync(path1).toString(), fs.readFileSync(path2).toString())
 }
 
-test('parses multipart/form-data with files', (done) => {
-  send('multipart/form-data', {
-    hello: 'world',
-    foo: 'bar',
-    number: 20161006,
-    file1: fs.createReadStream(path.join(__dirname, '/fixtures/file1.txt')),
-    file2: fs.createReadStream(path.join(__dirname, '/fixtures/file2.txt')),
-  });
+beforeAll((done) => { app.start(done) })
 
-  callback = (req) => {
-    assert.equal(req.fields.hello, 'world');
-    assert.equal(req.fields.foo, 'bar');
-    assert.equal(req.fields.number, '20161006');
+test('parses application/x-www-form-urlencoded', (done) => {
+    const data = { author: 'Abderrahmane' }
+    const expectedData = { body: {}, fields: data, files: {} }
 
-    fileTest(req.files.file1, 'You\'re file 1.\n');
-    fileTest(req.files.file2, 'I\'m file 2.\n');
+    send('application/x-www-form-urlencoded', data, '/echo', (error, response, body) => {
+        assert(error === null, error)
+        const received = JSON.parse(body)
 
-    done();
-  };
-});
+        assert.deepStrictEqual(received, expectedData)
+        done()
+    })
+}, 1000)
 
-let numberOfFields;
-let numberOfFilesBegin;
-let numberOfFiles;
-let endReached;
+test('parses application/json', (done) => {
+    const data = { author: 'Abderrahmane' }
+    const expectedData = { body: data }
 
-const events = [
-  {
-    event: 'fileBegin',
-    action: (req, res, next, name, file) => {
-      assert(name, 'name is null');
-      assert(file, 'file is null');
-      numberOfFilesBegin += 1;
-    },
-  },
-  {
-    event: 'field',
-    action: (req, res, next, name, value) => {
-      assert(name, 'name is null');
-      assert(value, 'value is null');
-      numberOfFields += 1;
-    },
-  },
-  {
-    event: 'progress',
-    action: (req, res, next, bytesReceived, bytesExpected) => {
-      assert(bytesExpected, 'bytesExpected is null');
-    },
-  },
-  {
-    event: 'file',
-    action: (req, res, next, name, file) => {
-      assert(name, 'name is null');
-      assert(file, 'file is null');
-      numberOfFiles += 1;
-    },
-  },
-  {
-    event: 'error',
-    action: (req, res, next, err) => {
-      assert(err, 'err is null');
-      assert.fail('error event must not be recieved');
-    },
-  },
-  {
-    event: 'aborted',
-    action: (req, res, next) => {
-      assert(next, 'next is null');
-      assert.fail('aborted event must not be recieved');
-    },
-  },
-  {
-    event: 'end',
-    action: (req, res, next) => {
-      assert(next, 'next is null');
-      endReached = true;
-    },
-  },
-];
+    send('application/json', data, '/echo', (error, response, body) => {
+        assert(error === null, error)
+        assert.deepStrictEqual(body, expectedData)
+        done()
+    })
+}, 1000)
 
-app.post('/event', formidable(null, events), req => callback(req));
+test('parses multipart/form-data without a file', (done) => {
+    const data = { author: 'Abderrahmane' }
+    const expectedData = { body: {}, fields: data, files: {} }
 
-test('parses multipart/form-data with files and recieve all events', (done) => {
-  numberOfFields = 0;
-  numberOfFilesBegin = 0;
-  numberOfFiles = 0;
-  endReached = false;
+    send('multipart/form-data', data, '/echo', (error, response, body) => {
+        assert(error === null, error)
+        const received = JSON.parse(body)
 
-  send('multipart/form-data', {
-    hello: 'world',
-    foo: 'bar',
-    number: 20161006,
-    file1: fs.createReadStream(path.join(__dirname, '/fixtures/file1.txt')),
-    file2: fs.createReadStream(path.join(__dirname, '/fixtures/file2.txt')),
-  }, '/event');
+        assert.deepStrictEqual(received, expectedData)
+        done()
+    })
+}, 1000)
 
-  callback = (req) => {
-    assert.equal(req.fields.hello, 'world');
-    assert.equal(req.fields.foo, 'bar');
-    assert.equal(req.fields.number, '20161006');
+test('parses multipart/form-data with file', (done) => {
+    const pathToFile1 = path.join(__dirname, '/fixtures/file1.txt')
+    const pathToFile2 = path.join(__dirname, '/fixtures/file2.txt')
 
-    fileTest(req.files.file1, 'You\'re file 1.\n');
-    fileTest(req.files.file2, 'I\'m file 2.\n');
+    const data = {
+        author: 'Abderrahmane',
+        number: Math.floor(Math.random() * 1000),
+        file1: fs.createReadStream(pathToFile1),
+        file2: fs.createReadStream(pathToFile2),
+    }
 
-    assert.equal(numberOfFields, 3);
-    assert.equal(numberOfFilesBegin, 2);
-    assert.equal(numberOfFiles, 2);
-
-    assert(endReached, 'The end event is not reached');
-
-    done();
-  };
-});
+    send('multipart/form-data', data, '/echo', (err, response, body) => {
+        const received = JSON.parse(body)
+        assert.strictEqual(received.fields.author, data.author)
+        assert.strictEqual(Number(received.fields.number), data.number)
+        checkTwoFiles(received.files.file1.path, pathToFile1)
+        checkTwoFiles(received.files.file2.path, pathToFile2)
+        done()
+    })
+}, 1000)
