@@ -1,6 +1,6 @@
 {
   "name": "express-formidable-v2",
-  "version": "2.1.0",
+  "version": "2.2.1",
   "description": "A Fork of express-formidable middleware.",
   "author": "Abderrahman-byte",
   "main": "./lib/middleware.js",
